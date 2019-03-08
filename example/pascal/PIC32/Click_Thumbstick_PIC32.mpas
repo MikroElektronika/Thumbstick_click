@@ -1,0 +1,115 @@
+{*
+Example for Thumbstick Click
+
+    Date          : Dec 2018.
+    Author        : Nenad Filipovic
+
+Test configuration PIC32 :
+    
+    MCU                : P32MX795F512L
+    Dev. Board         : EasyPIC Fusion v7
+    PIC32 Compiler ver : v4.0.0.0
+
+---
+
+Description :
+
+The application is composed of three sections :
+
+- System Initialization - Initializes SPI, GPIO and LOG structures,
+     set INT pin as input, CS and RST pins as output.
+- Application Initialization - Initialization driver enable's - SPI and start write log.
+- Application Task - (code snippet) This is a example which demonstrates the use of Thumbstick Click board.
+     Thumbstick Click communicates with register via SPI by read ADC value from the MCP3204 chip,
+     getget position of thumbstick ( joystick ) and get thumbstick press button state.
+     Results are being sent to the Usart Terminal where you can track their changes.
+     All data logs write on usb uart when the thumbstick is triggered.
+
+
+*}
+program Click_Thumbstick_PIC32;
+
+uses Click_Thumbstick_types, Click_Thumbstick_config;
+
+var
+    position : uint8_t; 
+    buttonState : uint8_t; 
+    positionOld : uint8_t; 
+    buttonStateOld : uint8_t; 
+    
+procedure systemInit(); 
+begin
+
+    mikrobus_gpioInit(_MIKROBUS1, _MIKROBUS_INT_PIN, _GPIO_INPUT); 
+    mikrobus_gpioInit(_MIKROBUS1, _MIKROBUS_CS_PIN, _GPIO_OUTPUT); 
+    mikrobus_spiInit(_MIKROBUS1, @_THUMBSTICK_SPI_CFG[0]); 
+    mikrobus_logInit(_LOG_USBUART_A, 9600); 
+    Delay_100ms(); 
+
+end;
+
+procedure applicationInit(); 
+begin
+
+    thumbstick_spiDriverInit(T_THUMBSTICK_P(@_MIKROBUS1_GPIO), T_THUMBSTICK_P(@_MIKROBUS1_SPI)); 
+    mikrobus_logWrite('-------------------', _LOG_LINE); 
+    mikrobus_logWrite(' Thumbstick  Click ', _LOG_LINE); 
+    mikrobus_logWrite('-------------------', _LOG_LINE); 
+
+end;
+
+procedure applicationTask(); 
+begin
+
+    position := thumbstick_getPosition(); 
+    buttonState := thumbstick_pressButton(); 
+    if (((buttonState = _THUMBSTICK_BUTTON_ACTIVE) and (buttonStateOld = _THUMBSTICK_BUTTON_INACTIVE))) then 
+    begin
+        buttonStateOld := _THUMBSTICK_BUTTON_ACTIVE; 
+        mikrobus_logWrite(' Button is pressed ', _LOG_LINE); 
+        mikrobus_logWrite('-------------------', _LOG_LINE); 
+    end; 
+    if (((buttonState = _THUMBSTICK_BUTTON_INACTIVE) and (buttonStateOld = _THUMBSTICK_BUTTON_ACTIVE))) then 
+    begin
+        buttonStateOld := _THUMBSTICK_BUTTON_INACTIVE; 
+    end; 
+    if ((positionOld <> position)) then 
+    begin
+        if ((position = _THUMBSTICK_POSITION_START)) then 
+        begin
+            mikrobus_logWrite('     S T A R T', _LOG_LINE); 
+        end; 
+        if ((position = _THUMBSTICK_POSITION_TOP)) then 
+        begin
+            mikrobus_logWrite('       T O P', _LOG_LINE); 
+        end; 
+        if ((position = _THUMBSTICK_POSITION_RIGHT)) then 
+        begin
+            mikrobus_logWrite('     R I G H T', _LOG_LINE); 
+        end; 
+        if ((position = _THUMBSTICK_CHANNEL_BOTTOM)) then 
+        begin
+            mikrobus_logWrite('    B O T T O M', _LOG_LINE); 
+        end; 
+        if ((position = _THUMBSTICK_CHANNEL_LEFT)) then 
+        begin
+            mikrobus_logWrite('      L E F T', _LOG_LINE); 
+        end; 
+        mikrobus_logWrite('-------------------', _LOG_LINE); 
+        positionOld := position; 
+    end; 
+
+end;
+
+begin
+    positionOld := 0xFF;
+    buttonStateOld := 0;
+
+    systemInit(); 
+    applicationInit(); 
+    while (1) do 
+    begin 
+        applicationTask(); 
+    end;
+
+end.

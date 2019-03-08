@@ -1,0 +1,8 @@
+module Click_Thumbstick_config
+
+include Click_Thumbstick_types
+
+const
+    _THUMBSTICK_SPI_CFG as uint32_t[3] = (_SPI_MASTER, _SPI_FCY_DIV32, _SPI_CLK_LO_LEADING)
+    
+end.
